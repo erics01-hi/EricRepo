@@ -15,46 +15,50 @@ except FileNotFoundError:
 st.subheader("Voorbeeld van de data")
 st.dataframe(df.head())
 
-# Filter 1: Woonplaats
-woonplaatsen = df['woonplaats'].dropna().unique()
-gekozen_woonplaats = st.selectbox("Kies een woonplaats", sorted(woonplaatsen))
+# Filter 1: Woonplaats (optioneel)
+alle_woonplaatsen = ['Alle'] + sorted(df['woonplaats'].dropna().unique().tolist())
+gekozen_woonplaats = st.selectbox("Kies een woonplaats (optioneel)", alle_woonplaatsen)
 
-# Filter data op woonplaats
-data_per_woonplaats = df[df['woonplaats'] == gekozen_woonplaats]
+# Filter op woonplaats indien geselecteerd
+if gekozen_woonplaats != 'Alle':
+    df = df[df['woonplaats'] == gekozen_woonplaats]
 
-# Filter 2: Merk (alleen merken in die woonplaats)
-merken = data_per_woonplaats['merk'].dropna().unique()
-gekozen_merk = st.selectbox("Kies een merk", sorted(merken))
+# Filter 2: Merk (optioneel)
+alle_merken = ['Alle'] + sorted(df['merk'].dropna().unique().tolist())
+gekozen_merk = st.selectbox("Kies een merk (optioneel)", alle_merken)
 
-# Filter definitieve data
-gefilterde_data = data_per_woonplaats[data_per_woonplaats['merk'] == gekozen_merk]
+# Filter op merk indien geselecteerd
+if gekozen_merk != 'Alle':
+    df = df[df['merk'] == gekozen_merk]
 
-# Controle of er data is
-if gefilterde_data.empty:
-    st.warning("Geen gegevens beschikbaar voor deze combinatie van woonplaats en merk.")
+# Check of er nog data is
+if df.empty:
+    st.warning("Geen gegevens beschikbaar voor deze selectie.")
     st.stop()
 
-# Groeperingen (optioneel, want we hebben al gefilterd op merk)
-verkoop = gefilterde_data['aantal'].sum()
-omzet = gefilterde_data['totaal_bedrag'].sum()
+# Groeperen per merk
+verkoop_per_merk = df.groupby('merk')['aantal'].sum().sort_values(ascending=False)
+omzet_per_merk = df.groupby('merk')['totaal_bedrag'].sum().sort_values(ascending=False)
 
-# Visuals naast elkaar
+# Zet visuals naast elkaar
 col1, col2 = st.columns(2)
 
-# Visual 1: Aantal verkocht
+# Visual 1: Aantal verkocht per merk
 with col1:
-    st.subheader("Aantal verkocht")
+    st.subheader("Aantal verkocht per merk")
     fig1, ax1 = plt.subplots()
-    ax1.bar(gekozen_merk, verkoop, color='lightgreen')
+    verkoop_per_merk.plot(kind='bar', ax=ax1, color='lightgreen')
     ax1.set_ylabel("Aantal verkocht")
-    ax1.set_title(f"{gekozen_merk} in {gekozen_woonplaats}")
+    ax1.set_xlabel("Merk")
+    ax1.set_title("Aantal verkocht")
     st.pyplot(fig1)
 
-# Visual 2: Totale omzet
+# Visual 2: Omzet per merk
 with col2:
-    st.subheader("Totale omzet (€)")
+    st.subheader("Totale omzet per merk (€)")
     fig2, ax2 = plt.subplots()
-    ax2.bar(gekozen_merk, omzet, color='salmon')
+    omzet_per_merk.plot(kind='bar', ax=ax2, color='salmon')
     ax2.set_ylabel("Totale omzet (€)")
-    ax2.set_title(f"{gekozen_merk} in {gekozen_woonplaats}")
+    ax2.set_xlabel("Merk")
+    ax2.set_title("Totale omzet")
     st.pyplot(fig2)
